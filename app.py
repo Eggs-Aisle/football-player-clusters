@@ -158,27 +158,42 @@ fig_single.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, radi
                          title=f"Cluster {cluster_id}: {cluster_descriptions.get(cluster_id, ('Unknown', []))[0]}")
 st.plotly_chart(fig_single, use_container_width=True)
 
-# Export (remove PC1/PC2/Cluster; keep Cluster Group)
+# Export (include dropped columns + new columns, hide PC1/PC2/Cluster)
 st.subheader("Export")
 
-export_cols = []
-if "Player Name" in plot_df.columns:
-    export_cols.append("Player Name")
-if "Player Team" in plot_df.columns:
-    export_cols.append("Player Team")
-if "Cluster Group" in plot_df.columns:
-    export_cols.append("Cluster Group")
-if "Player Type" in plot_df.columns:
-    export_cols.append("Player Type")
 
-export_df = pd.concat([plot_df[export_cols], num_df.reset_index(drop=True)], axis=1)
+# Base meta columns from the original df
+meta_cols = []
+for c in ["Player Name", "Player Team"]:
+if c in df.columns:
+meta_cols.append(c)
+
+
+# Dropped-but-requested columns to include back in the export
+restore_cols = ["Player ID", "Player Age", "Player Height", "Mins Played", "rating"]
+restore_cols = [c for c in restore_cols if c in df.columns]
+
+
+# New columns from plot_df
+new_cols_df = plot_df[[c for c in ["Cluster Group", "Player Type"] if c in plot_df.columns]].reset_index(drop=True)
+
+
+# Assemble left block: meta + restored dropped columns
+left_block = df[meta_cols + restore_cols].reset_index(drop=True)
+
+
+# Right block: all numeric performance features retained in num_df
+right_block = num_df.reset_index(drop=True)
+
+
+# Concatenate in desired order: meta/team → restored cols → new cols → metrics
+export_df = pd.concat([left_block, new_cols_df, right_block], axis=1)
+
 
 csv_bytes = export_df.to_csv(index=False).encode("utf-8")
-
 st.download_button(
-    label="Download clustered CSV",
-    data=csv_bytes,
-    file_name="players_pca_ward_clusters.csv",
-    mime="text/csv"
+label="Download clustered CSV",
+data=csv_bytes,
+file_name="players_pca_ward_clusters.csv",
+mime="text/csv"
 )
-
