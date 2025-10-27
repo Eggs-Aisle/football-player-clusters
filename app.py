@@ -160,6 +160,7 @@ st.plotly_chart(fig_single, use_container_width=True)
 
 # Export (remove PC1/PC2/Cluster; keep Cluster Group)
 st.subheader("Export")
+
 export_cols = []
 if "Player Name" in plot_df.columns:
     export_cols.append("Player Name")
@@ -171,6 +172,13 @@ if "Player Type" in plot_df.columns:
     export_cols.append("Player Type")
 
 export_df = pd.concat([plot_df[export_cols], num_df.reset_index(drop=True)], axis=1)
-st.markdown(download_link(export_df, filename="players_pca_ward_clusters.csv"), unsafe_allow_html=True)
 
+csv_bytes = export_df.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+    label="Download clustered CSV",
+    data=csv_bytes,
+    file_name="players_pca_ward_clusters.csv",
+    mime="text/csv"
+)
 
